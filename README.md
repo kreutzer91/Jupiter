@@ -1,1 +1,1 @@
-A python based client-server app that suppports upload and fetch images.
+A python based client-server app that suppports uploading and fetching images.
