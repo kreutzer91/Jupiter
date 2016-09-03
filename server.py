@@ -9,10 +9,15 @@ import random
 import json
 import io
 
+import ImageDao
+import UserDao
+
 #This class handles any incoming request 
 class myHandler(BaseHTTPRequestHandler):
   
-  mdb = None # MySqlDatabase
+  def __init__(self):
+    self.ImageDao = ImageDao.ImageDao
+    self.UserDao = UserDao.UserDao
   
   #Handler for the GET requests
   def do_GET(self):
@@ -30,8 +35,6 @@ class myHandler(BaseHTTPRequestHandler):
 
 PORT_NUMBER = 8082
 try:
-  #myHandler.mdb = MySqlDatabase(host="172.20.10.7")
-  #myHandler.mdb.connectToDB()
   server = HTTPServer(('', PORT_NUMBER), myHandler)
   print 'Started http server on port', PORT_NUMBER
 

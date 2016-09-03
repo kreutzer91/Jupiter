@@ -10,6 +10,7 @@ connection = pymysql.connect(host='localhost',
 
 cursor = connection.cursor()
 
+# create table for image
 sql = 'CREATE DATABASE IF NOT EXISTS Jupiter'
 cursor.execute(sql)
 sql = 'USE Jupiter'
@@ -31,5 +32,18 @@ sql = '''CREATE TABLE ImageTable (
         `ready_status` BOOL,
         PRIMARY KEY ( `user_name`,`event_key` )
        ) ENGINE=MyISAM DEFAULT CHARSET=latin1
+       '''
+cursor.execute(sql)
+
+sql = 'DROP TABLE IF EXISTS UserTable'
+cursor.execute(sql)
+
+
+# create table for user
+sql = '''CREATE TABLE UserTable (
+        `user_name` VARCHAR( 200 ) NOT NULL,
+        `pass_word` VARCHAR( 200 ) NOT NULL,
+        PRIMARY KEY ( `user_name`)
+       ) ENGINE=MyISAM
        '''
 cursor.execute(sql)
