@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[153]:
+# In[1]:
 
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ import pymysql.cursors
 get_ipython().magic(u'matplotlib inline')
 
 
-# In[41]:
+# In[2]:
 
 def CreateUser(http_server, user_name, pass_word):
     headers = {"user_name": user_name,
@@ -32,7 +32,7 @@ def CreateUser(http_server, user_name, pass_word):
     return is_success,user_name
 
 
-# In[191]:
+# In[27]:
 
 class _db_select_struct():
   # for one image
@@ -100,7 +100,7 @@ class MyClient(ImageSelectRequestStruct):
     self.image_select_request.print_all_images()
     
     
-  def conn_to_server(self, http_server="172.20.10.8:8082"):
+  def conn_to_server(self, http_server="172.91.68.167:8082"):
     self.conn = http.client.HTTPConnection(http_server)
 
   def disconn_to_server(self):
@@ -165,12 +165,13 @@ class MyClient(ImageSelectRequestStruct):
     self.conn.request("GET","","", headers)
     rsp = self.conn.getresponse()
     data_received = rsp.read()
-    print(len(data_received))
-    print(type(data_received)
     stringdata=str(data_received,'latin-1')
-    #print(stringdata)
-    recover = json.loads(stringdata)
-    #PrintData([recover])
+    recover = json.loads(stringdata, encoding='latin-1')
+    for key, value in recover.items():
+      try:
+        recover[key] = recover[key].encode('latin-1')
+      except:
+        pass
     return recover
   
   def _checkifokay(self, user_name, event_key):
@@ -243,7 +244,7 @@ class MyClient(ImageSelectRequestStruct):
     
 
 
-# In[187]:
+# In[28]:
 
 from matplotlib import gridspec
 def PrintData(fetch_data, num_image=3):
@@ -272,105 +273,65 @@ def PrintData(fetch_data, num_image=3):
     print ('\n')
 
 
-# In[188]:
+# In[30]:
 
 def TestFetchSelfImage():
-  username_list=["reallygood","phoebe2","foo","phoebe"]
+  username_list=["reallygoods","phoebe2s","foos","phoebes"]
   for i in range (4):
     c1 = MyClient(username_list[i])
-    c1.conn_to_server(http_server="172.20.10.8:8082")
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
     c1.FetchSelfImage()
     c1.disconn_to_server()
-    c1.conn_to_server(http_server="172.20.10.8:8082")
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
 TestFetchSelfImage()
 
 
 
-# In[190]:
-
-def TestFetchNonSelfPostSelectiontoServer():
-  username_list=["reallygood","phoebe2","foo","phoebe"]
-  for i in range (4):
-    c1 = MyClient(username_list[i])
-    c1.conn_to_server(http_server="172.20.10.8:8082")
-    event_key,user_name = c1.FetchNonSelfImage()
-    c1.disconn_to_server()
-    c1.conn_to_server(http_server="172.20.10.8:8082")
-    c1.PostSelectiontoServer(user_name,event_key)
-    c1.disconn_to_server()
-TestFetchNonSelfPostSelectiontoServer()
-
-
-# In[179]:
+# In[11]:
 
 def TestPostImage():
-  username_list=["reallygood","phoebe2","foo","phoebe"]
+  username_list=["reallygoods","phoebe2s","foos","phoebes"]
   password_list=["1234","okay","psps","cool"]
   status_history = []
   for i in range (4):
-    status, user_name=CreateUser(http_server="172.20.10.8:8082", user_name=username_list[i], pass_word=password_list[i])
+    status, user_name=CreateUser(http_server="[172.91.68.167]:8082", user_name=username_list[i], pass_word=password_list[i])
     c1 = MyClient(user_name)
     print (c1.image_select_request.ownerID)
     ## read three image
-    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images5.jpeg")
+    if i == 2:
+      c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images5.jpeg")
     c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images4.jpeg")
     c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images3.jpeg")
-    c1.conn_to_server(http_server="172.20.10.8:8082")
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
     c1.PostImagetoServer()
     c1.disconn_to_server()
 TestPostImage()
 
 
-# In[50]:
+# In[32]:
+
+def TestFetchNonSelfPostSelectiontoServer():
+  username_list=["reallygood","phoebe2","foo","phoebe"]
+  for i in range (4):
+    c1 = MyClient(username_list[i])
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
+    event_key,user_name = c1.FetchNonSelfImage()
+    c1.disconn_to_server()
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
+    c1.PostSelectiontoServer(user_name,event_key)
+    c1.disconn_to_server()
+TestFetchNonSelfPostSelectiontoServer()
+
+
+# In[23]:
 
 def TestCreateUser():
   username_list=["ybc1","phoebe2","foo","phoebe"]
   password_list=["1234","okay","psps","cool"]
   status_history = []
   for i in range (4):
-    status, user_name=CreateUser(http_server="172.20.10.8:8082", user_name=username_list[i], pass_word=password_list[i])
+    status, user_name=CreateUser(http_server="172.91.68.167:8082", user_name=username_list[i], pass_word=password_list[i])
     status_history.append(status)
   print (status_history)
 TestCreateUser()
-
-
-# In[53]:
-
-def run():
-  username_list=["ybc","phoebe","foo"]
-  password_list=["1234","okay","psps"]
-  for i in range (3):
-    status, user_name=CreateUser(http_server="172.20.10.8:8082", user_name=username_list[i], pass_word=password_list[i])
-    if status:
-      c1 = MyClient(user_name)
-      print (c1.image_select_request.ownerID)
-      ## read three image
-      c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images5.jpeg")
-      c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images4.jpeg")
-      c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images3.jpeg")
-
-      # c1.print_images()
-      # TODO check connect whether successful
-      c1.conn_to_server(http_server="172.20.10.8:8082")
-      # c1.conn_to_server(http_server="10.0.0.5:8082")
-      c1.PostImagetoServer()
-      c1.disconn_to_server()
-      c1.conn_to_server(http_server="172.20.10.8:8082")
-
-  #     c1.PostSelectiontoServer()
-  #     # TODO possibly may cause problem (disconnet reconnect)
-  #     c1.disconn_to_server()
-  #     c1.conn_to_server(http_server="172.20.10.8:8082")
-
-  #     c1.FetchSelfImage()
-  #     c1.disconn_to_server()
-  #     c1.conn_to_server(http_server="172.20.10.8:8082")
-
-      c1.FetchNonSelfImage()
-
-      c1.disconn_to_server()
-      print('done: ',i)
-      #return data
-run()
-
 
