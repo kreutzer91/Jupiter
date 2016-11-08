@@ -32,7 +32,7 @@ def CreateUser(http_server, user_name, pass_word):
     return is_success,user_name
 
 
-# In[27]:
+# In[47]:
 
 class _db_select_struct():
   # for one image
@@ -99,6 +99,13 @@ class MyClient(ImageSelectRequestStruct):
   def print_images(self):
     self.image_select_request.print_all_images()
     
+  def request_response(self, event_key, user_name, key):
+    headers = {"user_name": user_name,
+               "event_key": event_key, # todo: changing this into better format
+               "mode": key,
+              }
+    self.conn.request("GET","","", headers)
+    rsp = self.conn.getresponse()
     
   def conn_to_server(self, http_server="172.91.68.167:8082"):
     self.conn = http.client.HTTPConnection(http_server)
@@ -130,6 +137,8 @@ class MyClient(ImageSelectRequestStruct):
     text_file = open("event_key_"+self.ownerID+".txt", "a")
     text_file.write(key_str+'\n')
     text_file.close()
+    print(each_image_size)
+    print(str(each_image_size)[1:-1])
     headers = {"content_length" : len(imgByteAll),
                "num_images": len(each_image_size),
                "each_size": str(each_image_size)[1:-1],
@@ -140,6 +149,10 @@ class MyClient(ImageSelectRequestStruct):
               }
     print(type(imgByteAll))
     self.conn.request("POST", "", imgByteAll, headers)
+    rsp = self.conn.getresponse()
+    is_success=rsp.getheader('status')
+    print (is_success)
+    
 
   def PostSelectiontoServer(self, user_name="ybc",event_key="bb35fb80-6286-11e6-8b7a-985aeb8f7138",choice_number=1):
     '''
@@ -151,8 +164,34 @@ class MyClient(ImageSelectRequestStruct):
                "mode": "send_selection",
               }
     self.conn.request("POST","","", headers)
+    rsp = self.conn.getresponse()
+    is_success=rsp.getheader('status')
+    print (is_success)
     
   # def fetch_image(self):
+  
+  def _fetch_one_image(self, path):
+    '''
+      make event_key, user_name to be automatic
+    '''
+    headers ={"path" : path,
+              "mode" : "fetch_one_image",
+              }
+    self.conn.request("GET","","", headers)
+    rsp = self.conn.getresponse()
+    data_received = rsp.read()
+    stringdata=str(data_received,'latin-1')
+    recover = json.loads(stringdata, encoding='latin-1')
+    if recover['image'] == None:
+      return;
+    post_data_bin = np.fromstring(recover['image'].encode('latin-1'), dtype=np.uint8)
+    print("post_data_bin: ", post_data_bin)
+    print(len(post_data_bin))
+    post_image = Image.open(io.BytesIO(post_data_bin))
+    gs = gridspec.GridSpec(1, 1, width_ratios=np.ones(1), height_ratios=[1])
+    plt.subplot(gs[0])
+    plt.imshow(post_image)
+    plt.axis("off")
 
   def _fetch_image(self, user_name, event_key):
     '''
@@ -160,6 +199,7 @@ class MyClient(ImageSelectRequestStruct):
     '''
     headers = {"user_name": user_name,
                "event_key": event_key, # todo: changing this into better format
+               "self_name": self.ownerID,
                "mode": "fetch_selection",
               }
     self.conn.request("GET","","", headers)
@@ -218,18 +258,43 @@ class MyClient(ImageSelectRequestStruct):
 #     recover = recover[0]
     #################################################
     PrintData([recover])
+#     rsp = self.conn.getresponse()
+#     is_success=rsp.getheader('status')
+#     print (is_success)
     if is_ready:
       recover = self._fetch_image(self.ownerID,xx[-2])
       PrintData([recover])
     else:
       print("Not Ready Yet")
-
+    
+  def FetchNonSelfImageInfo(self):
+    '''
+      Get information for non self image
+    '''
+    headers = {"owner_ID": self.ownerID,
+               "mode": "fetch_non_self_image",
+              }
+    self.conn.request("GET","","", headers)
+    rsp = self.conn.getresponse()
+    uuid=rsp.getheader('random_uuid')
+    name=rsp.getheader('random_name')
+    data_received = rsp.read()
+    stringdata=str(data_received,'latin-1')
+    recover = json.loads(stringdata, encoding='latin-1')
+    num_images = len([1 for i in range(1,4) if recover['images'+str(i)] != None])
+    print (num_images)
+    print (recover)
+    for i in range (1,4):
+      if recover['images'+str(i)] != None:
+        _fetch_one_image(recover['images'+str(i)])
+    return uuid, name, num_images
+    
     
   def FetchNonSelfImage(self):
     '''
       Get randome image assigned by server
     '''
-    headers = {"user_name": self.ownerID,
+    headers = {"owner_ID": self.ownerID,
                "mode": "fetch_non_self_image",
               }
     self.conn.request("GET","","", headers)
@@ -240,11 +305,27 @@ class MyClient(ImageSelectRequestStruct):
     print("name ",name)
     recover=self._fetch_image(name,uuid)
     PrintData([recover])
+#     rsp = self.conn.getresponse()
+#     is_success=rsp.getheader('status')
+#     print (is_success)
     return uuid,name
     
 
 
-# In[28]:
+# In[48]:
+
+def TestFetchOneImage():
+  username_list=["phoebe2s","phoebe2s","foo","phoebe"]
+  for i in range (1):
+    c1 = MyClient(username_list[i])
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
+    c1._fetch_one_image("/Users/yingbicheng/Documents/python/Server_Client/images/94a11ee8-9a66-11e6-a67c-985aeb8f71380.jpeg")
+    c1.disconn_to_server()
+    
+TestFetchOneImage()
+
+
+# In[14]:
 
 from matplotlib import gridspec
 def PrintData(fetch_data, num_image=3):
@@ -273,11 +354,44 @@ def PrintData(fetch_data, num_image=3):
     print ('\n')
 
 
-# In[30]:
+# In[24]:
+
+def TestFetchNonSelfInfo():
+  username_list=["phoebe2s","phoebe2s","foo","phoebe"]
+  for i in range (1):
+    c1 = MyClient(username_list[i])
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
+    event_key,user_name = c1.FetchNonSelfImageInfo()
+    c1.disconn_to_server()
+    
+TestFetchNonSelfInfo()
+
+
+# In[27]:
+
+def TestPostImage():
+  username_list=["reallygoods","phoebe2s","foos","phoebes"]
+  password_list=["1234","okay","psps","cool"]
+  status_history = []
+  for i in range (2):
+    status, user_name=CreateUser(http_server="[172.91.68.167]:8082", user_name=username_list[i], pass_word=password_list[i])
+    c1 = MyClient(user_name)
+    print (c1.image_select_request.ownerID)
+    ## read three image
+    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images5.jpeg")
+    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images4.jpeg")
+    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images3.jpeg")
+    c1.conn_to_server(http_server="[172.91.68.167]:8082")
+    c1.PostImagetoServer()
+    c1.disconn_to_server()
+TestPostImage()
+
+
+# In[46]:
 
 def TestFetchSelfImage():
   username_list=["reallygoods","phoebe2s","foos","phoebes"]
-  for i in range (4):
+  for i in range (2):
     c1 = MyClient(username_list[i])
     c1.conn_to_server(http_server="[172.91.68.167]:8082")
     c1.FetchSelfImage()
@@ -287,32 +401,11 @@ TestFetchSelfImage()
 
 
 
-# In[11]:
-
-def TestPostImage():
-  username_list=["reallygoods","phoebe2s","foos","phoebes"]
-  password_list=["1234","okay","psps","cool"]
-  status_history = []
-  for i in range (4):
-    status, user_name=CreateUser(http_server="[172.91.68.167]:8082", user_name=username_list[i], pass_word=password_list[i])
-    c1 = MyClient(user_name)
-    print (c1.image_select_request.ownerID)
-    ## read three image
-    if i == 2:
-      c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images5.jpeg")
-    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images4.jpeg")
-    c1.ReadOneImage("/Users/phoebesu/Desktop/jupitar/images3.jpeg")
-    c1.conn_to_server(http_server="[172.91.68.167]:8082")
-    c1.PostImagetoServer()
-    c1.disconn_to_server()
-TestPostImage()
-
-
-# In[32]:
+# In[12]:
 
 def TestFetchNonSelfPostSelectiontoServer():
-  username_list=["reallygood","phoebe2","foo","phoebe"]
-  for i in range (4):
+  username_list=["phoebe2s","phoebe2s","foo","phoebe"]
+  for i in range (1):
     c1 = MyClient(username_list[i])
     c1.conn_to_server(http_server="[172.91.68.167]:8082")
     event_key,user_name = c1.FetchNonSelfImage()
@@ -323,15 +416,14 @@ def TestFetchNonSelfPostSelectiontoServer():
 TestFetchNonSelfPostSelectiontoServer()
 
 
-# In[23]:
+# In[7]:
 
 def TestCreateUser():
-  username_list=["ybc1","phoebe2","foo","phoebe"]
-  password_list=["1234","okay","psps","cool"]
+  username_list=["geliu","phoebe2s","reallygoods"]
+  password_list=["123","okay","psps"]
   status_history = []
-  for i in range (4):
+  for i in range (3):
     status, user_name=CreateUser(http_server="172.91.68.167:8082", user_name=username_list[i], pass_word=password_list[i])
     status_history.append(status)
   print (status_history)
 TestCreateUser()
-
