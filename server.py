@@ -8,35 +8,28 @@ from scipy.misc import imsave
 import random
 import json
 import io
+import os
+from sshtunnel import SSHTunnelForwarder
+#import array
+from scipy.misc import imread
 
-import ImageDao
-import UserDao
+from handler import *
+from database_class import *
 
-#This class handles any incoming request 
-class myHandler(BaseHTTPRequestHandler):
-  
-  def __init__(self):
-    self.ImageDao = ImageDao.ImageDao
-    self.UserDao = UserDao.UserDao
-  
-  #Handler for the GET requests
-  def do_GET(self):
-    self.send_response(200)
-    self.send_header('Content-type','text/html')
-    self.end_headers()
-    self.wfile.write("Hello World!")
-    return
-  
-  def do_POST(self):
-    self.send_response(200)
-    return
-
-
-
+# import socket
 PORT_NUMBER = 8082
+
+# class HTTPServerV6(HTTPServer):
+#   address_family = socket.AF_INET6
+  
 try:
+  myHandler.mdb = MySqlDatabase(host='localhost', user = 'phoebeybc7', password='Yingbich1991')
+  myHandler.mdb.connectToDB()
+  print("Connected to database")
+  #Create a web server and define the handler to manage the
+  #incoming request
   server = HTTPServer(('', PORT_NUMBER), myHandler)
-  print 'Started http server on port', PORT_NUMBER
+  print 'Started httpserver on port ' , PORT_NUMBER
 
   #Wait forever for incoming htto requests
   server.serve_forever()
